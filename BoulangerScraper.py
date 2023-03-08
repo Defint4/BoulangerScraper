@@ -3,7 +3,6 @@
 import multiprocessing
 import requests
 from bs4 import BeautifulSoup
-from functools import lru_cache
 
 
 class BoulangerScraper():
@@ -19,7 +18,6 @@ class BoulangerScraper():
             'http': f"http://{proxy_login}:{proxy_pass}@{proxy_host}:{proxy_port}"
         }
         
-    @lru_cache(maxsize=None)    
     def get_html(self,pagename=None):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
@@ -92,18 +90,20 @@ class BoulangerScraper():
                             desc = "\n".join([ligne.strip() for ligne in desc.split("\n") if ligne.strip() != ""])
                         else:
                             desc = ''
+                        img = article.find('img', {'class': 'product-item__image'}).get('src')
                         link = article.find('a',{'class': 'product-item__title'}).get('href')
+                        
+                        
                         article_html = self.get_html(link)
                         if article_html:
                             article_soup = BeautifulSoup(article_html, 'html.parser')
                             details = article_soup.find('ul', {'class': 'product-features__list'})
-                            # print(details)
                             if details:
                                 details = details.prettify()
                                 details = "\n".join([ligne.strip() for ligne in details.split("\n") if ligne.strip() != ""])
                             else:
                                 details = 'Aucun détail'
-                            data.append({'Titre': title, 'Prix(€)': price, 'Description': desc, 'Détails': details, 'Lien': self.url.replace('/c/','')+link})
+                            data.append({'Titre': title, 'Prix(€)': price, 'Description': desc, 'Détails': details,"Image": img, 'Lien': self.url.replace('/c/','')+link})
                             
                     except:
                         continue
@@ -126,7 +126,7 @@ class BoulangerScraper():
             except Exception as e:
                 print(f"L'erreur est : {e}")
                 continue
-            writer = CSVWriter(f'{pagename}.csv', ['Titre', 'Prix(€)', 'Description','Détails','Lien'])
+            writer = CSVWriter(f'{pagename}.csv', ['Titre', 'Prix(€)', 'Description','Détails','Image','Lien'])
             writer.writeCsv(data)
 
     
@@ -137,9 +137,11 @@ if __name__ == '__main__':
     freeze_support()
 
     from AddCsv import CSVWriter    
+    
+    
     #exemple d'utilisation : 
     #--------------------------------------------
-    nbpages = 1                     #nombre de page à scraper
+    nbpages = 2                    #nombre de page à scraper
     scraper = BoulangerScraper()               
     scraper.scrape(nbpages)
     #--------------------------------------------
